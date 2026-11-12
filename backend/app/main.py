@@ -3,6 +3,8 @@ from fastapi import FastAPI
 from app.database import Base, engine
 from app.models import User
 from app.routers import auth
+from app.database import Base, engine
+from app.models import User, Category, Complaint   #SQLAlchemy needs to know about your models before it can create their corresponding tables.That's why we import all models before calling create_all()
 
 Base.metadata.create_all(bind=engine)  #create_all()-It checks the registered SQLAlchemy models and creates their corresponding database tables if they don't already exist.
 

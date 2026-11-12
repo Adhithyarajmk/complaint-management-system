@@ -6,6 +6,12 @@ from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse
 from app.security import hash_password
 
+from fastapi.security import OAuth2PasswordRequestForm
+
+from app.schemas.user import UserLogin, TokenResponse
+from app.security import verify_password, create_access_token
+
+from app.dependencies import get_current_user, get_current_admin
 
 router = APIRouter(
     prefix="/auth",
@@ -50,7 +56,7 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         username=user.username,
         email=user.email,
         hashed_password=hashed_password,
-        role="user"
+        role="student"  # Default role for new users
     )   #Creates a Python object using our SQLAlchemy User model.
 
     # Save user in database
@@ -59,3 +65,68 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user) #Retrieves updated database values for the object.
 
     return new_user
+
+
+@router.post("/login", response_model=TokenResponse)
+
+def login_user(
+    user: OAuth2PasswordRequestForm = Depends(),    #OAuth2PasswordRequestForm is a FastAPI dependency that extracts the username and password from the request form data.
+    db: Session = Depends(get_db)
+):
+
+    # Find user by username
+    existing_user = db.query(User).filter(
+        User.username == user.username
+    ).first()
+
+    if not existing_user:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid username or password"
+        )
+
+    # Verify password
+    if not verify_password(
+        user.password,
+        existing_user.hashed_password
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid username or password"
+        )
+
+    if not existing_user.is_active:
+        raise HTTPException(
+            status_code=403,
+            detail="User account is inactive"
+        )
+
+    # Generate JWT
+    access_token = create_access_token(
+        data={"sub": str(existing_user.id)}
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
+
+
+@router.get("/me", response_model=UserResponse)
+def get_user_profile(
+    current_user: User = Depends(get_current_user)
+):
+
+    return current_user
+
+
+@router.get("/admin-check")
+def admin_check(
+    current_admin: User = Depends(get_current_admin)
+):
+
+    return {
+        "message": "Welcome Admin!",
+        "username": current_admin.username,
+        "role": current_admin.role
+    }

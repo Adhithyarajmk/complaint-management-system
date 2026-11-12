@@ -21,3 +21,15 @@ class UserResponse(BaseModel):
     is_active: bool
 
     model_config = ConfigDict(from_attributes=True)  #This allows Pydantic to read values directly from SQLAlchemy model objects.
+
+
+class UserLogin(BaseModel):
+
+    username: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+
+    access_token: str
+    token_type: str

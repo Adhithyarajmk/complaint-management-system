@@ -3,6 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
+from sqlalchemy.orm import relationship
 
 
 class User(Base):   #allows SQLAlchemy to recognize the class as a database model.
@@ -47,3 +48,8 @@ class User(Base):   #allows SQLAlchemy to recognize the class as a database mode
         DateTime,
         server_default=func.now()
     )
+
+    complaints = relationship(
+    "Complaint",
+    back_populates="user"
+)
